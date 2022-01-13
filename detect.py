@@ -18,6 +18,7 @@ from utils.torch_utils import select_device, load_classifier, time_synchronized
 def detect(save_img=False):
     source, weights, view_img, save_txt, imgsz = opt.source, opt.weights, opt.view_img, opt.save_txt, opt.img_size
     save_img = not opt.nosave and not source.endswith('.txt')  # save inference images
+    save_video = save_img
     webcam = source.isnumeric() or source.endswith('.txt') or source.lower().startswith(
         ('rtsp://', 'rtmp://', 'http://', 'https://'))
 
@@ -60,6 +61,7 @@ def detect(save_img=False):
     if device.type != 'cpu':
         model(torch.zeros(1, 3, imgsz, imgsz).to(device).type_as(next(model.parameters())))  # run once
     t0 = time.time()
+    increment = 0
     for path, img, im0s, vid_cap in dataset:
         img = torch.from_numpy(img).to(device)
         img = img.half() if half else img.float()  # uint8 to fp16/32
@@ -87,7 +89,7 @@ def detect(save_img=False):
                 p, s, im0, frame = path, '', im0s, getattr(dataset, 'frame', 0)
 
             p = Path(p)  # to Path
-            save_path = str(save_dir / p.name)  # img.jpg
+            save_path = str(save_dir / '{}.{}'.format(str(increment).zfill(5), p.name.split('.')[1])) if opt.increment else str(save_dir / p.name)  # img.jpg
             txt_path = str(save_dir / 'labels' / p.stem) + ('' if dataset.mode == 'image' else f'_{frame}')  # img.txt
             s += '%gx%g ' % img.shape[2:]  # print string
             gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
@@ -138,6 +140,7 @@ def detect(save_img=False):
                             save_path += '.mp4'
                         vid_writer = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
                     vid_writer.write(im0)
+        increment+=1
 
     if save_txt or save_img:
         s = f"\n{len(list(save_dir.glob('labels/*.txt')))} labels saved to {save_dir / 'labels'}" if save_txt else ''
@@ -166,6 +169,7 @@ if __name__ == '__main__':
     parser.add_argument('--project', default='runs/detect', help='save results to project/name')
     parser.add_argument('--name', default='exp', help='save results to project/name')
     parser.add_argument('--exist-ok', action='store_true', help='existing project/name ok, do not increment')
+    parser.add_argument('--increment', action='store_true', help='rename result from 0 to ∞')
     opt = parser.parse_args()
     print(opt)
     check_requirements(exclude=('pycocotools', 'thop'))
