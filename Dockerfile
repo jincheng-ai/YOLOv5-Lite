@@ -29,5 +29,6 @@ RUN apt-get install -yq \
 
 RUN rm -rf /var/lib/apt/lists/*
 
-RUN git clone https://github.com/ppogg/YOLOv5-Lite.git
+ADD . /det/YOLOv5-Lite
 RUN cd YOLOv5-Lite && pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+RUN pip install jupyter -i https://pypi.tuna.tsinghua.edu.cn/simple
